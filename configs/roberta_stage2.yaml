@@ -1,0 +1,11 @@
+cpu_batch_size: 4
+gpu_batch_size: 16
+lr: 2e-5
+max_length: 128
+model_name: roberta-base
+num_epochs: 5
+output_dir: outputs/roberta_stage2
+run_name: roberta_stage2
+seed: 42
+stage: 2
+warmup_ratio: 0.1
