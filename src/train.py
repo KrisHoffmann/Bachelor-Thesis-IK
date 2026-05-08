@@ -156,7 +156,7 @@ def train_stage2(cfg: dict, use_gpu: bool, config_path: str) -> None:
     )
 
     model = CLTStage2Model(cfg["model_name"]).to(device)
-    optimizer = torch.optim.AdamW(model.parameters(), lr=cfg["lr"])
+    optimizer = torch.optim.AdamW(model.parameters(), lr=float(cfg["lr"]))
 
     total_steps = len(train_loader) * cfg["num_epochs"]
     warmup_steps = int(total_steps * cfg["warmup_ratio"])
@@ -339,7 +339,7 @@ def main():
     # class weights from train split only: w_c = n_total / (2 * n_c)
     labels = train_ds["label"]
     n_total = len(labels)
-    n_pos = int(labels.sum().item())
+    n_pos = int(sum(labels))
     n_neg = n_total - n_pos
     w_neg = n_total / (2 * n_neg)
     w_pos = n_total / (2 * n_pos)
@@ -356,8 +356,8 @@ def main():
         num_train_epochs=cfg["num_epochs"],
         per_device_train_batch_size=batch_size,
         per_device_eval_batch_size=batch_size,
-        learning_rate=cfg["lr"],
-        evaluation_strategy="epoch",
+        learning_rate=float(cfg["lr"]),
+        eval_strategy="epoch",
         save_strategy="epoch",
         load_best_model_at_end=True,
         metric_for_best_model="eval_loss",
@@ -382,7 +382,7 @@ def main():
         args=training_args,
         train_dataset=train_ds,
         eval_dataset=dev_ds,
-        tokenizer=tokenizer,
+        processing_class=tokenizer,
         data_collator=DataCollatorWithPadding(tokenizer),
         compute_metrics=hf_compute_metrics,
     )
@@ -401,7 +401,7 @@ def main():
     metrics = compute_metrics_dict(pred_labels, gold_labels)
 
     with open(run_dir / "dev_predictions.json", "w") as f:
-        json.dump({"predictions": pred_labels, "gold": gold_labels}, f)
+        json.dump({"predictions": [int(x) for x in pred_labels], "gold": [int(x) for x in gold_labels]}, f)
 
     metrics_serialisable = {
         k: (v.tolist() if hasattr(v, "tolist") else v)
