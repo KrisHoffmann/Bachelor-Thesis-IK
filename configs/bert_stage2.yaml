@@ -1,0 +1,11 @@
+model_name: bert-base-uncased
+stage: 2
+lr: 2e-5
+num_epochs: 5
+gpu_batch_size: 16
+cpu_batch_size: 4
+max_length: 128
+warmup_ratio: 0.1
+seed: 42
+output_dir: outputs/bert_stage2
+run_name: bert_stage2

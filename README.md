@@ -1,8 +1,13 @@
-# CLT Salience Classifier — Bachelor Thesis
+# CLT Cascade Classifier — Bachelor Thesis
 
-Binary salience classifier (Stage 1 of a Construal Level Theory cascade) fine-tuned on
-annotated ChangeMyView sentences. Uses BERT-base-uncased with class-weighted cross-entropy
-to handle the ~83/17 salient/non-salient imbalance.
+Two-stage Construal Level Theory classifier fine-tuned on annotated ChangeMyView sentences.
+
+- **Stage 1** — binary salience classifier (BERT-base-uncased, class-weighted cross-entropy,
+  ~83/17 salient/non-salient imbalance).
+- **Stage 2** — four-head CLT dimension classifier operating on salient sentences only.
+  Each dimension (Temporal, Spatial, Social, Hypothetical) is a 3-class head: N/A / Near / Far.
+  Temporal and Spatial are severely imbalanced (~90% N/A); classifier collapse to N/A on
+  those dimensions is expected and reported, not hidden.
 
 ---
 
@@ -39,26 +44,33 @@ Each file is a JSON array of objects with this schema:
 | `sentence_idx`  | int     | Sentence position within the post                |
 | `sentence_text` | str     | Raw sentence text (model input)                  |
 | `salient`       | bool    | Gold label: `true` = salient (class 1), `false` = not salient (class 0) |
-| `temporal`      | int     | CLT temporal dimension (Stage 2, not used here)  |
-| `spatial`       | int     | CLT spatial dimension (Stage 2, not used here)   |
-| `social`        | int     | CLT social dimension (Stage 2, not used here)    |
-| `hypothetical`  | int     | CLT hypothetical dimension (Stage 2, not used here) |
+| `temporal`      | int\|null | CLT temporal dimension: -1=N/A, 0=Near, 1=Far (Stage 2) |
+| `spatial`       | int\|null | CLT spatial dimension: -1=N/A, 0=Near, 1=Far (Stage 2)  |
+| `social`        | int\|null | CLT social dimension: -1=N/A, 0=Near, 1=Far (Stage 2)   |
+| `hypothetical`  | int\|null | CLT hypothetical dimension: -1=N/A, 0=Near, 1=Far (Stage 2) |
 
-Expected counts: train=723, dev=176, test=155.
+Expected counts: train=723 (621 salient), dev=176 (147 salient), test=155 (127 salient).
+`null` dimension values (4 records total, annotation gaps) are treated as -1 (N/A).
 
 ---
 
 ## Quickstart
 
 ```bash
-# Smoke test — untrained forward pass on 5 sentences, CPU, <1 min
+# Smoke test — untrained forward pass, Stage 1 + Stage 2, CPU, <1 min
 python scripts/smoke_test.py
 
-# Mini-train — 50 train + 10 dev sentences, 1 epoch, CPU, <10 min
+# Mini-train Stage 1 — 50 train + 10 dev sentences, 1 epoch, CPU, <10 min
 python scripts/mini_train.py
 
-# Full train — uses configs/bert_stage1.yaml, GPU if available
+# Mini-train Stage 2 — 50 salient train + 15 salient dev, 1 epoch, CPU, <15 min
+python scripts/mini_train_stage2.py
+
+# Full train Stage 1 — uses configs/bert_stage1.yaml, GPU if available
 python src/train.py --config configs/bert_stage1.yaml
+
+# Full train Stage 2 — uses configs/bert_stage2.yaml, GPU if available
+python src/train.py --config configs/bert_stage2.yaml
 ```
 
 ---
@@ -66,9 +78,16 @@ python src/train.py --config configs/bert_stage1.yaml
 ## Repository layout
 
 ```
-configs/           YAML training configs
-data/processed/    gitignored; place train/dev/test.json here
-src/               core library (data, model, train, evaluate)
-scripts/           smoke_test.py, mini_train.py
-outputs/           gitignored; checkpoints, predictions, metrics
+configs/                     YAML training configs (bert_stage1.yaml, bert_stage2.yaml)
+data/processed/              gitignored; place train/dev/test.json here
+src/                         core library (data, model, train, evaluate)
+  data.py                      load_split, load_split_stage2, verify_splits, verify_stage2_splits
+  model.py                     build_model (Stage 1), CLTStage2Model (Stage 2)
+  train.py                     unified training script, --stage 1|2
+  evaluate.py                  compute_metrics_dict (Stage 1), evaluate_stage2 (Stage 2)
+scripts/
+  smoke_test.py                Stage 1 + Stage 2 untrained forward passes
+  mini_train.py                Stage 1 CPU mini-train
+  mini_train_stage2.py         Stage 2 CPU mini-train
+outputs/                     gitignored; checkpoints, predictions, metrics
 ```
