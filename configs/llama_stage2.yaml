@@ -1,0 +1,192 @@
+# LLaMA-3.2-3B-Instruct Stage 2 (CLT dimensions) config
+#
+# parse_failure_fallback: -1 on every dimension (N/A) — majority class.
+#   Temporal N/A: 90.5%  Spatial N/A: 92.6%  Social N/A: 18.0%  Hypothetical N/A: 6.6%
+#   Falling back to all-N/A is conservative and avoids hallucinating rare
+#   Near/Far signals when the model output is malformed.
+#
+# Decoding is hard-coded to greedy (do_sample=False, temperature irrelevant)
+# in llama_inference.py for reproducibility.
+#
+# Few-shot selection rationale
+# ─────────────────────────────
+# The training distribution is severely skewed (Temporal Near 3.7%,
+# Temporal Far 5.8%, Spatial Near 4.3%, Spatial Far 3.1%). Without
+# deliberate over-representation the model would see mostly N/A and infer
+# N/A is always correct. The 8 examples below are hand-picked to ensure
+# every one of the 12 dimension×class combos appears at least once.
+#
+# All labels verified against train.json on 2026-05-09.
+#
+# Example 7 was swapped (2026-05-09): original example (13267/9) had gold
+# social=-1 after verification, losing Social Near coverage. Replaced with
+# (11353/0) which provides Social Near AND Hypothetical N/A in one example.
+#
+#   Per-(dim, class) counts after correction and swap:
+#
+#   Temporal  Near (0)  : examples 3, 7          (2 appearances)
+#   Temporal  Far  (1)  : examples 1, 5          (2 appearances)
+#   Temporal  N/A (-1)  : examples 2, 4, 6, 8    (4 appearances)
+#   Spatial   Near (0)  : examples 4, 6          (2 appearances)
+#   Spatial   Far  (1)  : examples 2, 8          (2 appearances)
+#   Spatial   N/A (-1)  : examples 1, 3, 5, 7    (4 appearances)
+#   Social    Near (0)  : example  7             (1 appearance)
+#   Social    Far  (1)  : examples 1,2,3,4,5,8   (6 appearances)
+#   Social    N/A (-1)  : example  6             (1 appearance)
+#   Hypothetical Near(0): examples 1, 2, 3, 4    (4 appearances)
+#   Hypothetical Far (1): examples 5, 6, 8       (3 appearances)
+#   Hypothetical N/A(-1): example  7             (1 appearance)
+#
+# task_ids are from train only; hard-coded so examples never drift between runs.
+
+model_name: meta-llama/Llama-3.2-3B-Instruct
+
+# --- prompt schema ---
+prompt_template_version: "v1.0"
+
+# 8 few-shot examples, one per entry.
+# Fields: task_id, sentence_idx, and the gold raw labels (-1/0/1).
+few_shot_task_ids:
+  # verified against train.json on 2026-05-09
+  # Example 1 — temporal Far, spatial N/A, social Far, hypothetical Near
+  # "Over the past couple of thousand years human beings as a species have
+  #  done a pretty crappy job of living up to the 3 laws we expect robots
+  #  to abide by…"
+  - task_id: 13264
+    sentence_idx: 0
+    temporal: 1
+    spatial: -1
+    social: 1
+    hypothetical: 0
+
+  # verified against train.json on 2026-05-09
+  # Example 2 — temporal N/A, spatial Far, social Far, hypothetical Near
+  # "IE The robots will treat all humans everywhere the same way we
+  #  routinely treated some humans in some places."
+  - task_id: 13264
+    sentence_idx: 13
+    temporal: -1
+    spatial: 1
+    social: 1
+    hypothetical: 0
+
+  # verified against train.json on 2026-05-09
+  # Example 3 — temporal Near, spatial N/A, social Far, hypothetical Near
+  # "When we exist 24/7 with these machines and internet, we lose regular
+  #  humanity."
+  - task_id: 13270
+    sentence_idx: 1
+    temporal: 0
+    spatial: -1
+    social: 1
+    hypothetical: 0
+
+  # verified against train.json on 2026-05-09
+  # Example 4 — temporal N/A, spatial Near, social Far, hypothetical Near
+  # "I'm not worried about robots attacking humans, just like Vancouver
+  #  Island Marmots don't generally need to be worried about humans
+  #  trying to destroy them."
+  - task_id: 13266
+    sentence_idx: 2
+    temporal: -1
+    spatial: 0
+    social: 1
+    hypothetical: 0
+
+  # verified against train.json on 2026-05-09
+  # Example 5 — temporal Far, spatial N/A, social Far, hypothetical Far
+  # "It also might integrate with us very subtly over time, for example
+  #  most people have mobile phones, wearables are coming out…"
+  - task_id: 13270
+    sentence_idx: 0
+    temporal: 1
+    spatial: -1
+    social: 1
+    hypothetical: 1
+
+  # verified against train.json on 2026-05-09
+  # Example 6 — temporal N/A, spatial Near, social N/A, hypothetical Far
+  # "Lightning will strike me if I stay out in the rain."
+  # (corrected from original: social was 0→-1, hypothetical was -1→1)
+  - task_id: 13275
+    sentence_idx: 4
+    temporal: -1
+    spatial: 0
+    social: -1
+    hypothetical: 1
+
+  # verified against train.json on 2026-05-09
+  # Example 7 — temporal Near, spatial N/A, social Near, hypothetical N/A
+  # "Yeah, for the night, everyone is drunk and having the time of their
+  #  lives and the party is amazing but then the next morning comes around
+  #  images of half naked fairies prancing around bombard the news."
+  # (swapped in 2026-05-09: replaces old 13267/9 which had social=-1 after
+  #  verification, losing Social Near coverage; this record provides Social
+  #  Near AND Hypothetical N/A)
+  - task_id: 11353
+    sentence_idx: 0
+    temporal: 0
+    spatial: -1
+    social: 0
+    hypothetical: -1
+
+  # verified against train.json on 2026-05-09
+  # Example 8 — temporal N/A, spatial Far, social Far, hypothetical Far
+  # "Will AI govern the world?"
+  # (corrected from original: hypothetical was 0→1)
+  - task_id: 13267
+    sentence_idx: 14
+    temporal: -1
+    spatial: 1
+    social: 1
+    hypothetical: 1
+
+# System prompt injected as the system role in the chat template.
+system_prompt: |
+  You are a research assistant specializing in Construal Level Theory (CLT)
+  and psycholinguistics. You will receive a salient sentence from an online
+  argument and must classify its psychological distance across four dimensions
+  simultaneously.
+
+  For each dimension output one of three integer values:
+    -1  =  N/A   — no cue for this dimension is present in the sentence
+     0  =  Near  — concrete, low-level, specific cue present
+     1  =  Far   — abstract, high-level, categorical cue present
+
+  Dimension definitions:
+    temporal    : WHEN — Near if < 1 month or "now/today"; Far if > 1 month or era-level
+    spatial     : WHERE — Near if local/travelable (city, building, "here"); Far if national/global
+    social      : WHO  — Near if a named individual or "I/my"; Far if a group/institution/society
+    hypothetical: HOW REAL — Near if factual/historical; Far if "what-if"/possibility/supposition
+
+  Output ONLY a single JSON object on one line, no prose, no explanation:
+  {"temporal": <int>, "spatial": <int>, "social": <int>, "hypothetical": <int>}
+
+# User-turn template. {few_shot_block} and {sentence} are filled at runtime.
+user_prompt_template: |
+  {few_shot_block}Sentence: "{sentence}"
+  CLT vector:
+
+# Template for each few-shot example inside the user turn.
+few_shot_example_template: |
+  Sentence: "{sentence}"
+  CLT vector: {{"temporal": {temporal}, "spatial": {spatial}, "social": {social}, "hypothetical": {hypothetical}}}
+
+# --- generation ---
+# Decoding is greedy (do_sample=False) — hard-coded in llama_inference.py.
+max_new_tokens: 80
+
+# --- parse_failure_fallback ---
+# Default raw label per dimension when model output cannot be parsed.
+# -1 (N/A) on every dimension — safest majority-class default.
+parse_failure_fallback:
+  temporal: -1
+  spatial: -1
+  social: -1
+  hypothetical: -1
+
+# --- I/O paths (relative to repo root) ---
+data_dir: data/processed
+output_dir: outputs
+raw_log_path: outputs/llama_stage2_{split}_raw.jsonl
+predictions_path: outputs/llama_stage2_{split}_predictions.json
