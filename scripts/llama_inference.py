@@ -84,6 +84,22 @@ def _calibration_records(records: list[dict]) -> list[dict]:
     3. Take first 30 task_ids.
     4. Return all records with a matching task_id, preserving original order.
     """
+
+# KNOWN LIMITATION (documented in thesis methods):
+# This function selects N unique task_ids and returns ALL records belonging to
+# them. The original intent was to draw a 30-sentence calibration subset of
+# dev. However, dev.json contains only 24 unique task_ids, so when CALIBRATION_N
+# (30) > 24, every task_id is selected and the function returns all 176 dev
+# sentences — i.e. calibration evaluates on full dev rather than a held-out
+# subset.
+#
+# This was discovered after the LLaMA dev evaluation was already complete.
+# Because the prompt was not iterated against the dev results (the version
+# strings v1.0/v1.1 were committed once and not revised), the reported dev
+# F1 is a valid single evaluation. We document the bug rather than rerun.
+#
+# To fix for future use: select sentences directly via a seeded shuffle of
+# (task_id, sentence_idx) tuples and slice the first N.
     seen: dict[int, None] = {}
     for r in records:
         seen.setdefault(r["task_id"], None)
