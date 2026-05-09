@@ -7,3 +7,5 @@ krippendorff==0.6.1
 pyyaml==6.0.1
 pandas==2.2.2
 numpy==1.26.4
+huggingface_hub>=0.25.0
+sentencepiece>=0.2.0
