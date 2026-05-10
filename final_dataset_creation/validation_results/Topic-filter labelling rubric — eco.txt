@@ -1,0 +1,28 @@
+Topic-filter labelling rubric — economics in r/changemyview
+A thread is labelled economics if its main claim (what the OP wants their view changed about) substantively concerns one or more of:
+
+Prices, wages, income, or compensation
+Taxes, welfare, subsidies, or government spending
+Markets, trade, or competition
+Employment, unemployment, or labour
+Fiscal policy, monetary policy, inflation, or interest rates
+Economic inequality or wealth distribution
+Specific economic systems (capitalism, socialism, communism, etc.)
+Cost-of-living, housing affordability, healthcare costs as economic problems
+Industry-specific economic claims (e.g. "the music industry exploits artists" → economics)
+
+A thread is labelled not economics if its main claim concerns:
+
+Politics without economic substance (e.g. immigration framed as identity, abortion, gun rights without economic angle)
+Social or cultural issues (relationships, parenting, ethics, religion)
+Philosophy, morality, or epistemology without economic substance
+Personal or interpersonal claims
+Aesthetics, entertainment, technology preferences
+
+Edge cases:
+
+If economics is mentioned but isn't the OP's main claim → not economics. (Example: "I think the death penalty should be abolished, partly because it's expensive." → not economics; main claim is moral.)
+If the thread is ambiguous between two domains (e.g. "rent control is unfair to landlords") → economics, because the policy mechanism is economic even if framed morally.
+Healthcare: if about cost or insurance → economics. If about ethics or access without cost framing → not economics.
+"Should X be free / paid" questions → economics (about pricing).
+Be strict by default: when uncertain, label not economics. The downstream goal is a clean economics subcorpus; false positives in your gold label would inflate the model's apparent accuracy.
