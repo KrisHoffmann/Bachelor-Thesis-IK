@@ -63,43 +63,6 @@ def is_deleted(val: Any) -> bool:
     return val is None or str(val).strip() in DELETED_MARKERS or str(val).strip() == ""
 
 
-def prefilter(
-    records: list[dict],
-    body_field: str | None,
-    title_field: str | None,
-    count_field: str | None,
-) -> tuple[list[dict], dict]:
-    profile: dict[str, int] = {"raw_threads": len(records)}
-
-    # Drop deleted/removed/empty body
-    after_body = [
-        r for r in records
-        if body_field and not is_deleted(r.get(body_field))
-    ]
-    profile["after_remove_deleted"] = len(after_body)
-    log(f"Pre-filter body check: {len(records)} -> {len(after_body)}")
-
-    # Drop deleted title
-    after_title = [
-        r for r in after_body
-        if not (title_field and str(r.get(title_field, "")).strip() in DELETED_MARKERS)
-    ]
-    log(f"Pre-filter title check: {len(after_body)} -> {len(after_title)}")
-
-    # Drop low-comment threads
-    if count_field:
-        after_count = [
-            r for r in after_title
-            if int(r.get(count_field, 0) or 0) >= 2
-        ]
-    else:
-        after_count = after_title
-    profile["after_remove_short"] = len(after_count)
-    profile["after_remove_automod"] = len(after_count)  # TODO: add automod filter
-    log(f"Pre-filter comment-count check: {len(after_title)} -> {len(after_count)}")
-
-    return after_count, profile
-
 
 # ---------------------------------------------------------------------------
 # Corpus streaming
@@ -117,13 +80,55 @@ def stream_records(input_path: pathlib.Path):
                 continue
 
 
-def load_all_records(input_path: pathlib.Path, max_threads: int | None) -> list[dict]:
-    records: list[dict] = []
+def stream_and_prefilter(
+    input_path: pathlib.Path,
+    body_field: str | None,
+    title_field: str | None,
+    count_field: str | None,
+    max_threads: int | None,
+) -> tuple[list[dict], dict]:
+    """Stream records and apply pre-filter in one pass. Returns (kept_records, profile)."""
+    profile = {
+        "raw_threads": 0,
+        "after_remove_deleted": 0,
+        "after_remove_short": 0,
+        "after_remove_automod": 0,
+    }
+    kept: list[dict] = []
+    log_every = 10000
+
     for rec in stream_records(input_path):
-        records.append(rec)
-        if max_threads and len(records) >= max_threads:
+        profile["raw_threads"] += 1
+
+        if max_threads and profile["raw_threads"] >= max_threads:
             break
-    return records
+
+        # Stage 1: drop deleted/removed/empty body
+        if body_field and is_deleted(rec.get(body_field)):
+            continue
+        profile["after_remove_deleted"] += 1
+
+        # Stage 2: drop deleted title
+        if title_field and str(rec.get(title_field, "")).strip() in DELETED_MARKERS:
+            continue
+
+        # Stage 3: drop low-comment threads
+        if count_field:
+            try:
+                if int(rec.get(count_field, 0) or 0) < 2:
+                    continue
+            except (ValueError, TypeError):
+                continue
+
+        kept.append(rec)
+        profile["after_remove_short"] = len(kept)
+        profile["after_remove_automod"] = len(kept)  # TODO: add automod filter
+
+        if profile["raw_threads"] % log_every == 0:
+            log(f"Streamed {profile['raw_threads']:,} records, kept {len(kept):,} so far.")
+
+    log(f"Stream complete: {profile['raw_threads']:,} raw -> {len(kept):,} after pre-filter.")
+    return kept, profile
 
 
 # ---------------------------------------------------------------------------
@@ -375,11 +380,10 @@ def main() -> None:
     input_path = resolve_input(args.input)
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
-    log(f"Loading records from: {input_path}")
-    records = load_all_records(input_path, args.max_threads)
-    log(f"Loaded {len(records):,} records.")
-
-    filtered, profile = prefilter(records, body_field, title_field, count_field)
+    log(f"Streaming and pre-filtering records from: {input_path}")
+    filtered, profile = stream_and_prefilter(
+        input_path, body_field, title_field, count_field, args.max_threads,
+    )
     log(f"After pre-filter: {len(filtered):,} threads.")
 
     if args.mode == "smoke":
