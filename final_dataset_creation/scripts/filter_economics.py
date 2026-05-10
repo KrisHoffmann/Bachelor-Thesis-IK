@@ -86,6 +86,7 @@ def stream_and_prefilter(
     title_field: str | None,
     count_field: str | None,
     max_threads: int | None,
+    id_field: str | None = None,
 ) -> tuple[list[dict], dict]:
     """Stream records and apply pre-filter in one pass. Returns (kept_records, profile)."""
     profile = {
@@ -120,7 +121,14 @@ def stream_and_prefilter(
             except (ValueError, TypeError):
                 continue
 
-        kept.append(rec)
+        # Slim record to only the fields downstream code needs.
+        # Reddit thread records carry full comment trees (~200KB each);
+        # without this projection the filter OOMs on the full corpus.
+        slim = {}
+        for f in (body_field, title_field, id_field, count_field):
+            if f:
+                slim[f] = rec.get(f)
+        kept.append(slim)
         profile["after_remove_short"] = len(kept)
         profile["after_remove_automod"] = len(kept)  # TODO: add automod filter
 
@@ -382,7 +390,7 @@ def main() -> None:
 
     log(f"Streaming and pre-filtering records from: {input_path}")
     filtered, profile = stream_and_prefilter(
-        input_path, body_field, title_field, count_field, args.max_threads,
+        input_path, body_field, title_field, count_field, args.max_threads, id_field,
     )
     log(f"After pre-filter: {len(filtered):,} threads.")
 
