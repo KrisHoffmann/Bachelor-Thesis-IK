@@ -12,3 +12,16 @@ hf_cache/
 .cache/
 *.egg-info/
 Context/
+
+# Large CMV dataset files — never commit
+3778298/
+*.bz2
+*.zip
+
+# Outputs from topic-filter runs
+final_dataset_creation/outputs/
+!final_dataset_creation/outputs/topic_filter/.gitkeep
+
+# Editors
+.vscode/
+.idea/
