@@ -1,0 +1,15 @@
+# Phase B dataset construction dependencies
+# Append to existing venv with:
+#   pip install -r requirements_phase_b.txt
+#   python -m spacy download en_core_web_sm
+#
+# Note: en_core_web_trf must be installed separately on Hábrók for GPU runs:
+#   pip install spacy-transformers
+#   python -m spacy download en_core_web_trf
+
+spacy>=3.7
+textstat>=0.7
+pandas>=2.0
+pyarrow>=14
+scipy>=1.11
+numpy>=1.24

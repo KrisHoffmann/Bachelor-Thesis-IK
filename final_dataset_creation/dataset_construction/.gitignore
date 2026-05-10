@@ -1,0 +1,11 @@
+outputs/
+outputs/validation/
+schema_profiles/*.json
+consort/*.json
+*.parquet
+*.jsonl
+!tests/fixtures/*.jsonl
+!tests/fixtures/*.parquet
+__pycache__/
+tests/smoke_outputs/
+slurm/logs/
