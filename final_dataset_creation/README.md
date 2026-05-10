@@ -59,6 +59,7 @@ scp ~/cmv_data/3778298/threads.jsonl.bz2 \
 ## Compute accuracy snippet
 
 ```python
+# CSV columns: thread_id, title, body_excerpt, gold_label, model_score, model_label
 import pandas as pd
 
 df = pd.read_csv("final_dataset_creation/outputs/topic_filter/topic_validation_sample.csv")

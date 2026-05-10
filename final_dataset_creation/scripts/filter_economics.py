@@ -295,12 +295,19 @@ def mode_validation(
 
     out_path = OUTPUT_DIR / "topic_validation_sample.csv"
     with out_path.open("w", newline="", encoding="utf-8") as f:
-        writer = csv.DictWriter(f, fieldnames=["thread_id", "title", "gold_label", "model_score", "model_label"])
+        writer = csv.DictWriter(
+            f,
+            fieldnames=["thread_id", "title", "body_excerpt", "gold_label", "model_score", "model_label"],
+        )
         writer.writeheader()
         for rec, score, label in scored:
+            body = str(rec.get(body_field or "", "") or "")
+            # Collapse internal whitespace so Excel/Sheets doesn't break rows on newlines.
+            body_excerpt = " ".join(body.split())[:500]
             writer.writerow({
                 "thread_id": rec.get(id_field or "", ""),
                 "title": str(rec.get(title_field or "", ""))[:300],
+                "body_excerpt": body_excerpt,
                 "gold_label": "",
                 "model_score": f"{score:.4f}",
                 "model_label": label,
