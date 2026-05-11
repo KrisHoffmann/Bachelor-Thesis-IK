@@ -21,10 +21,13 @@ Expected survivors with current fixtures (see create_fixtures.py for design):
   c3  (t3_econB2, y=1, eve)
   c4  (t3_econB2, y=1, frank)
   c6  (t3_econD4, y=0, iris)
+  c7  (t3_econF6, y=1, iris)   ← back-and-forth: earliest ancestor of DeltaBot named by /u/iris
+  c7a (t3_econF6, y=0, henry)  ← 20-token reply, survives short filter
+  c7b (t3_econF6, y=0, iris)   ← 20-token follow-up, survives short filter; NOT y=1 (c7 is earlier)
 
 All-NaN comment: c6 (t3_econD4, y=0, no stratum impact when dropped)
-After Stage 7: 4 comments (c1, c2, c3, c4)
-Stage 9 strata: 1 (t3_econA1: c1+c2)
+After Stage 7: 7 comments (c1, c2, c3, c4, c7, c7a, c7b)
+Stage 9 strata: 2 (t3_econA1: c1+c2; t3_econF6: c7+c7a or c7+c7b depending on seed)
 """
 
 import sys

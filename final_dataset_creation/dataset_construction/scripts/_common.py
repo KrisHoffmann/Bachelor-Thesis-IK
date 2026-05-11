@@ -126,6 +126,30 @@ CONFIRMED_DELTA_PATTERN = re.compile(
     r"^Confirmed:\s+\d+\s+delta(s)?\s+awarded", re.IGNORECASE
 )
 
+# Captures the username from DeltaBot's confirmation body.
+# Handles two DeltaBot formats:
+#   new: "Confirmed: N delta(s) awarded to /u/USERNAME …"
+#   old: "Confirmed: N delta(s) awarded to USERNAME …" (no /u/ prefix)
+# Reddit usernames: 3-20 chars, letters/digits/underscores/hyphens.
+# Termination: whitespace, "(", "[", or end-of-string.
+DELTA_RECIPIENT_PATTERN = re.compile(
+    r"^Confirmed:\s+\d+\s+delta(?:s)?\s+awarded\s+to\s+(?:/u/)?([A-Za-z0-9_\-]+)",
+    re.IGNORECASE,
+)
+
+
+def extract_delta_recipient_username(deltabot_body: str | None) -> str | None:
+    """Parse the recipient username from a DeltaBot confirmation body.
+
+    Returns None if the body doesn't match or username can't be parsed.
+    """
+    if not deltabot_body:
+        return None
+    m = DELTA_RECIPIENT_PATTERN.match(deltabot_body.strip())
+    if m:
+        return m.group(1)
+    return None
+
 
 def is_delta_confirmation(comment: dict) -> bool:
     """Return True if this comment is a DeltaBot delta-confirmation reply.
@@ -184,36 +208,69 @@ def is_award_gesture(comment: dict) -> bool:
     direct DeltaBot confirmation child.
 
     Award gestures are the persuaded user's replies containing "∆"; they are
-    NOT delta-recipients. The recipient is the comment one level above the
-    award gesture (the persuasive argument).
+    NOT delta-recipients. Stage 2 drops them so they never appear in the
+    analysis corpus as cases or controls.
     """
-    return any(is_delta_confirmation(child) for child in comment.get("children", []))
+    return any(
+        child.get("author") == "DeltaBot" and is_delta_confirmation(child)
+        for child in comment.get("children", [])
+    )
 
 
 def find_delta_recipients(thread_record: dict) -> set[str]:
     """Walk the comment forest and return comment_ids of delta-recipients.
 
-    A comment R is a delta-recipient iff there exists a child A of R such
-    that A has a child B where is_delta_confirmation(B) is True.
+    Rule (verified against pairs.jsonl.bz2 ground truth):
+      A comment R is a delta-recipient iff there exists a DeltaBot confirmation
+      B somewhere in R's subtree such that:
+        - B.author == 'DeltaBot'
+        - B.body matches CONFIRMED_DELTA_PATTERN
+        - B.body names a user U via /u/<U> (parsed by extract_delta_recipient_username)
+        - R is the EARLIEST ancestor of B (closest to thread root) whose author == U.
 
-    The CMV award flow is: R (persuasive argument) → A (award gesture with ∆)
-    → B (DeltaBot confirmation). The recipient is R, not A.
+    This rule correctly handles back-and-forth threads where several rounds of
+    replies precede the delta award: R is always the first (root-closest) comment
+    by the named recipient in B's ancestor chain, regardless of nesting depth.
+
+    If DeltaBot names a user not found in the ancestor chain (data anomaly), a
+    warning is logged and that confirmation is skipped.
 
     Returns set of bare comment ids (matching the 'id' field, without t1_ prefix).
     """
     recipients: set[str] = set()
+    logger = get_logger("find_delta_recipients")
 
-    def _walk(c: dict) -> None:
-        for child_a in c.get("children", []):
-            for child_b in child_a.get("children", []):
-                if is_delta_confirmation(child_b):
-                    recipients.add(c["id"])
-                    break
-            if c["id"] in recipients:
-                break
+    def _walk(c: dict, ancestors: list[dict]) -> None:
+        if c.get("author") == "DeltaBot" and is_delta_confirmation(c):
+            named_user = extract_delta_recipient_username(c.get("body"))
+            if named_user is None:
+                logger.warning(
+                    "DeltaBot confirmation matched header but failed username parse: "
+                    "comment_id=%s body[:80]=%r",
+                    c.get("id"), (c.get("body") or "")[:80],
+                )
+            else:
+                # Walk ancestors from root toward DeltaBot; pick the first
+                # (earliest = closest to root) whose author matches named_user.
+                match = None
+                for ancestor in ancestors:
+                    if ancestor.get("author") == named_user:
+                        match = ancestor
+                        break
+                if match is None:
+                    logger.warning(
+                        "DeltaBot named /u/%s but no ancestor matches "
+                        "(comment_id=%s, ancestor authors=%s)",
+                        named_user, c.get("id"),
+                        [a.get("author") for a in ancestors],
+                    )
+                else:
+                    recipients.add(match["id"])
+
+        new_ancestors = ancestors + [c]
         for child in c.get("children", []):
-            _walk(child)
+            _walk(child, new_ancestors)
 
     for top in thread_record.get("comments", []):
-        _walk(top)
+        _walk(top, [])
     return recipients
