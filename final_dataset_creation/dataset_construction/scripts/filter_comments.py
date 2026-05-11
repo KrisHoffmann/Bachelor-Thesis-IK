@@ -81,9 +81,11 @@ def is_quote_only(record: dict) -> bool:
     lines = [ln for ln in body.splitlines() if ln.strip()]
     if not lines:
         return True
-    quoted = sum(1 for ln in lines if ln.lstrip().startswith(">"))
+    quoted = sum(
+        1 for ln in lines
+        if ln.lstrip().startswith(">") or ln.lstrip().startswith("&gt;")
+    )
     return (quoted / len(lines)) > QUOTE_THRESHOLD
-
 
 def main():
     parser = argparse.ArgumentParser(description="Stage 2: filter comments")
