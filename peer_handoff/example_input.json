@@ -1,0 +1,27 @@
+[
+  {
+    "sentence_text": "If we implement stricter environmental regulations now, future generations will benefit from cleaner air and water for decades to come.",
+    "post_id": "example_post_1",
+    "sentence_idx": 0
+  },
+  {
+    "sentence_text": "The meeting is scheduled for tomorrow afternoon in the main conference room.",
+    "post_id": "example_post_1",
+    "sentence_idx": 1
+  },
+  {
+    "sentence_text": "People in rural communities often have to travel long distances to access basic healthcare services.",
+    "post_id": "example_post_2",
+    "sentence_idx": 0
+  },
+  {
+    "sentence_text": "Someone might argue that technology will eventually solve all of these problems on its own.",
+    "post_id": "example_post_2",
+    "sentence_idx": 1
+  },
+  {
+    "sentence_text": "I bought a sandwich for lunch.",
+    "post_id": "example_post_3",
+    "sentence_idx": 0
+  }
+]
