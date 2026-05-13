@@ -89,5 +89,67 @@ scripts/
   smoke_test.py                Stage 1 + Stage 2 untrained forward passes
   mini_train.py                Stage 1 CPU mini-train
   mini_train_stage2.py         Stage 2 CPU mini-train
+  stage5_5_sentence_export.py  Explode comments_segmented.jsonl → sentences_for_classifier.jsonl
+  stage6_inference.py          BERT cascade inference driver (Stage 1 + Stage 2)
+slurm/
+  stage6_smoke.sbatch          Smoke-test SLURM job (1000 sentences, gpushort)
 outputs/                     gitignored; checkpoints, predictions, metrics
 ```
+
+---
+
+## Phase C — Inference runbook
+
+### Stage 5.5 — sentence export (local, CPU)
+
+Run from the **repo root** on your laptop (or on Hábrók without SLURM):
+
+```bash
+python scripts/stage5_5_sentence_export.py
+```
+
+Input: `final_dataset_creation/dataset_construction/outputs/comments_segmented.jsonl`  
+Output: `final_dataset_creation/dataset_construction/outputs/sentences_for_classifier.jsonl`  
+Counts: `final_dataset_creation/dataset_construction/consort/stage5_5_counts.json`
+
+Expected: ~3 million sentence rows, ~5 sentences per comment. Runs in a few minutes on a laptop.
+
+---
+
+### Stage 6 smoke test — BERT cascade on 1000 sentences (Hábrók, GPU)
+
+**Prerequisites on Hábrók:**
+
+1. Model weights extracted into `peer_handoff/models/`:
+   - `peer_handoff/models/stage1_model/` (HuggingFace checkpoint dir)
+   - `peer_handoff/models/stage2_best_model.pt`
+2. Stage 5.5 output present at `final_dataset_creation/dataset_construction/outputs/sentences_for_classifier.jsonl`
+3. Phase B venv active at `/scratch/s4546407/venvs/phase_b/`
+
+**Submit:**
+
+```bash
+cd /scratch/s4546407/clt_thesis/Bachelor-Thesis-IK
+sbatch slurm/stage6_smoke.sbatch
+```
+
+**Monitor:**
+
+```bash
+squeue -u s4546407
+tail -f slurm/logs/stage6_smoke_<JOBID>.out
+```
+
+**Expected output path:** `final_dataset_creation/dataset_construction/outputs/stage6_smoke_predictions.jsonl`  
+**Expected row count:** 1000 (one row per input sentence, including non-salient)
+
+---
+
+### What to check before moving to the profile run
+
+- [ ] **Row count is 1000.** `wc -l stage6_smoke_predictions.jsonl` must equal 1000.
+- [ ] **Output schema correct.** Every row has: `sentence_id`, `comment_id`, `thread_id`, `salience_pred`, `salience_logits` (len 2), `temporal_pred`, `temporal_logits` (len 3 or null), `spatial_pred`, `spatial_logits`, `social_pred`, `social_logits`, `hypothetical_pred`, `hypothetical_logits`.
+- [ ] **No NaN / all-null failure.** `salience_pred` is 0 or 1 for every row. Salient rows have non-null Stage 2 fields; non-salient rows have null Stage 2 fields.
+- [ ] **All 4 CLT dimensions populated for salient rows.** Check that `social_pred` and `hypothetical_pred` are not uniformly -1 across all salient sentences (that would indicate Stage 2 collapsed or was never run).
+- [ ] **Wall-clock per sentence is sane.** Divide total Stage 1 + Stage 2 GPU wall-clock by 1000; target <10 ms/sentence on a V100. If >50 ms, investigate before committing to the full-corpus job.
+- [ ] **GPU utilisation visible in the log.** Lines like `VRAM alloc=X.XXgb` should appear at each `--log-every` interval, confirming `python -u` flushing worked and the model is actually on GPU.

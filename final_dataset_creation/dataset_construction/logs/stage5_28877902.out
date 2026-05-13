@@ -1,0 +1,56 @@
+=== Stage 5 controls — start Mon May 11 22:16:51 CEST 2026 ===
+Host: node5
+Python: /scratch/s4546407/venvs/phase_b/bin/python
+spaCy 3.7.5
+textstat OK
+Hedge file: 103 lines
+Input rows: 598272
+=== Stage 5 controls — end Mon May 11 23:48:29 CEST 2026 ===
+Output size: -rw-rw-r--. 1 s4546407 s4546407 17M May 11 23:48 outputs/comments_controls.parquet
+
+###############################################################################
+Hábrók Cluster
+Job 28877902 for user s4546407
+Finished at: Mon May 11 23:48:33 CEST 2026
+
+Job details:
+============
+
+Job ID                         : 28877902
+Name                           : phase_b_stage5_controls
+User                           : s4546407
+Partition                      : regularshort
+Nodes                          : node5
+Number of Nodes                : 1
+Cores                          : 2
+Number of Tasks                : 1
+State                          : COMPLETED  
+Submit                         : 2026-05-11T22:16:45
+Start                          : 2026-05-11T22:16:46
+End                            : 2026-05-11T23:48:29
+Reserved walltime              : 04:00:00
+Used walltime                  : 01:31:43
+Used CPU time                  : 01:30:53 (Efficiency: 49.55%)
+% User (Computation)           : 98.88%
+% System (I/O)                 :  1.11%
+Total memory reserved          : 8G
+Maximum memory used            : 3.69G
+Hints and tips      :
+ 1) The program efficiency is very low. Your program does not seem to run in
+    parallel. Please check the program documentation to see how to make the
+    program run in parallel.
+    If you can't find information about this, the program will not run in
+    parallel! Stop requesting multiple CPU cores if that is the case.
+ 2) You requested much more CPU memory than your program used.
+    Please reduce the requested amount of memory.
+ *) For more information on these issues see:
+    https://wiki.hpc.rug.nl/habrok/additional_information/job_hints
+
+Acknowledgements:
+=================
+
+Please see this page for information about acknowledging Hábrók in your publications:
+
+https://wiki.hpc.rug.nl/habrok/introduction/scientific_output
+
+################################################################################
