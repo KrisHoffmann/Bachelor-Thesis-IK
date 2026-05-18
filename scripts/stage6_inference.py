@@ -20,6 +20,35 @@ the salient subset, and results are merged before writing. This is
 appropriate for the smoke test and profile run. Whether to switch to a
 disk-intermediate mode (write Stage 1 output, re-read for Stage 2) will
 be decided after the profile run reveals memory pressure, if any.
+
+OUTPUT SCHEMA
+-------------
+Each output row contains all input fields plus:
+
+  salience_pred    int   1 = salient, 0 = not salient (Stage 1 argmax)
+  salience_logits  list  [logit_class0, logit_class1] (raw Stage 1 logits)
+
+For salient sentences (salience_pred == 1), Stage 2 runs and adds per-dimension
+fields. For non-salient sentences, Stage 2 is not run and these fields are null
+(distinguishing "not run" from "ran and predicted N/A"):
+
+  {dim}_pred    int or null
+  {dim}_logits  list[float, float, float] or null   (raw Stage 2 logits, 3 classes)
+
+where {dim} is one of: temporal, spatial, social, hypothetical.
+
+Label encoding (Stage 2, all four dimensions):
+  Logit argmax index 0  →  pred value -1  (N/A — construal level not applicable)
+  Logit argmax index 1  →  pred value  0  (Near — low construal level)
+  Logit argmax index 2  →  pred value  1  (Far  — high construal level)
+
+Mapping: INV_LABEL_MAP = {0: -1, 1: 0, 2: 1}  (argmax-minus-1 encoding)
+
+Source: peer_handoff/src/data.py LABEL_MAP / INV_LABEL_MAP (lines 41-42),
+which encodes the raw annotation values {-1, 0, 1} as class indices {0, 1, 2}
+for training. Inference inverts this with INV_LABEL_MAP to recover the original
+annotation-space values. The config (peer_handoff/configs/bert_stage2_final.yaml)
+does not specify a label map; the mapping lives exclusively in data.py.
 """
 
 import argparse
@@ -39,7 +68,7 @@ from src.model import CLTStage2Model
 
 DIMS = ("temporal", "spatial", "social", "hypothetical")
 
-# Stage 2 class index → raw label: {0 → -1 (N/A), 1 → 0 (Near), 2 → 1 (Far)}
+# argmax-minus-1: class index {0,1,2} → annotation value {-1,0,1} (N/A, Near, Far)
 INV_LABEL_MAP = {0: -1, 1: 0, 2: 1}
 
 logging.basicConfig(
@@ -334,11 +363,14 @@ def main() -> None:
     log.info("  salient         : %d  (%.1f%%)", n_sal, 100 * n_sal / max(len(records), 1)); flush()
     log.info("  non-salient     : %d", len(records) - n_sal); flush()
     log.info("  output          : %s", out_path); flush()
-    if stage2_results:
-        for dim in DIMS:
-            vals = [stage2_results[i]["pred"] for i in salient_indices]
-            counts = {v: vals.count(v) for v in (-1, 0, 1)}
-            log.info("  %-14s N/A=%d  Near=%d  Far=%d", dim, counts[-1], counts[0], counts[1]); flush()
+    try:
+        if stage2_results:
+            for dim in DIMS:
+                vals = [stage2_results[i][dim]["pred"] for i in salient_indices]
+                counts = {v: vals.count(v) for v in (-1, 0, 1)}
+                log.info("  %-14s N/A=%d  Near=%d  Far=%d", dim, counts[-1], counts[0], counts[1]); flush()
+    except Exception as exc:
+        log.warning("Post-write summary failed (output is unaffected): %s", exc); flush()
 
 
 if __name__ == "__main__":
