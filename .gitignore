@@ -28,3 +28,8 @@ final_dataset_creation/outputs/
 
 Handoffs/
 
+
+# SLURM artifacts
+**/logs/*.out
+**/logs/*.err
+slurm/logs/
