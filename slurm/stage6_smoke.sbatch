@@ -38,7 +38,7 @@ mkdir -p slurm/logs
 
 module purge
 module load Python/3.11.5-GCCcore-13.2.0
-source /scratch/s4546407/venvs/phase_b/bin/activate
+source /scratch/s4546407/venvs/llama/bin/activate
 
 export HF_HOME="/scratch/s4546407/hf_cache"
 mkdir -p "${HF_HOME}"
