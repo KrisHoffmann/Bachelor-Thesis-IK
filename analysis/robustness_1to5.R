@@ -12,6 +12,7 @@ if (!requireNamespace("lme4",     quietly = TRUE)) install.packages("lme4")
 if (!requireNamespace("sandwich", quietly = TRUE)) install.packages("sandwich")
 if (!requireNamespace("lmtest",   quietly = TRUE)) install.packages("lmtest")
 if (!requireNamespace("dplyr",    quietly = TRUE)) install.packages("dplyr")
+if (!requireNamespace("R.utils",  quietly = TRUE)) install.packages("R.utils")
 
 library(arrow)
 library(survival)
@@ -19,6 +20,7 @@ library(lme4)
 library(sandwich)
 library(lmtest)
 library(dplyr)
+library(R.utils)
 
 DATA_DIR <- "C:/Users/kris/Documents/Thesis_R"
 
@@ -134,58 +136,119 @@ f3_full <- as.formula(paste(
 ))
 cat("\nFormula (full):\n"); print(f3_full); cat("\n")
 
-m3_converged    <- TRUE
+m3_converged      <- TRUE
 m3_author_dropped <- FALSE
+m3_optimizer_path <- "bobyqa"   # records which path was taken
 
-m3 <- tryCatch({
-  withCallingHandlers(
-    glmer(f3_full, data = df5, family = binomial,
-          control = glmerControl(optimizer = "bobyqa")),
+# ── Helper: fit glmer and flag convergence warnings ───────────────────────────
+fit_glmer_checked <- function(formula, data, optimizer, maxfun) {
+  converged <- TRUE
+  fit <- withCallingHandlers(
+    glmer(formula, data = data, family = binomial,
+          control = glmerControl(optimizer = optimizer,
+                                 optCtrl  = list(maxfun = maxfun))),
     warning = function(w) {
       if (grepl("convergence|failed to converge|Model failed", conditionMessage(w),
                 ignore.case = TRUE)) {
-        cat(sprintf("CONVERGENCE WARNING: %s\n", conditionMessage(w)))
-        m3_converged <<- FALSE
+        cat(sprintf("CONVERGENCE WARNING (%s): %s\n", optimizer, conditionMessage(w)))
+        converged <<- FALSE
       }
       invokeRestart("muffleWarning")
     }
   )
+  list(model = fit, converged = converged)
+}
+
+# ── Step 1: bobyqa with maxfun = 100,000, timeout = 300 s ────────────────────
+cat("Fitting M3 (full): bobyqa, maxfun = 100,000, timeout = 300 s ...\n")
+bobyqa_result <- tryCatch({
+  R.utils::withTimeout(
+    fit_glmer_checked(f3_full, df5, optimizer = "bobyqa", maxfun = 100000),
+    timeout = 300,
+    onTimeout = "error"
+  )
+}, TimeoutException = function(e) {
+  cat("TIMEOUT: bobyqa exceeded 300 s\n")
+  NULL
 }, error = function(e) {
-  cat(sprintf("ERROR fitting full M3: %s\n", conditionMessage(e)))
-  m3_converged <<- FALSE
+  cat(sprintf("ERROR in bobyqa fit: %s\n", conditionMessage(e)))
   NULL
 })
 
+m3 <- NULL
+if (!is.null(bobyqa_result) && bobyqa_result$converged) {
+  m3 <- bobyqa_result$model
+  m3_converged      <- TRUE
+  m3_optimizer_path <- "bobyqa (converged)"
+  cat("PATH: bobyqa converged within timeout\n")
+} else {
+  # ── Step 2: Nelder_Mead fallback, maxfun = 50,000 ──────────────────────────
+  if (is.null(bobyqa_result)) {
+    cat("Falling back to Nelder_Mead (bobyqa timed out)\n")
+  } else {
+    cat("Falling back to Nelder_Mead (bobyqa convergence warning)\n")
+  }
+
+  nm_result <- tryCatch({
+    fit_glmer_checked(f3_full, df5, optimizer = "Nelder_Mead", maxfun = 50000)
+  }, error = function(e) {
+    cat(sprintf("ERROR in Nelder_Mead fit: %s\n", conditionMessage(e)))
+    NULL
+  })
+
+  if (!is.null(nm_result) && nm_result$converged) {
+    m3 <- nm_result$model
+    m3_converged      <- TRUE
+    m3_optimizer_path <- "Nelder_Mead (converged after bobyqa fallback)"
+    cat("PATH: Nelder_Mead converged\n")
+  } else {
+    # ── Step 3: drop author effect, refit with thread_id only ────────────────
+    if (is.null(nm_result)) {
+      cat("Nelder_Mead errored — dropping (1|author), refitting with (1|thread_id) only\n")
+    } else {
+      cat("Nelder_Mead did not converge — dropping (1|author), refitting with (1|thread_id) only\n")
+    }
+    m3_converged      <- FALSE
+    m3_author_dropped <- TRUE
+
+    f3_reduced <- as.formula(paste(
+      "y ~",
+      paste(c("A_social", "A_hypothetical", CONTROLS), collapse = " + "),
+      "+ (1|thread_id)"
+    ))
+    cat("\nFormula (reduced, thread_id only):\n"); print(f3_reduced); cat("\n")
+
+    m3 <- tryCatch({
+      glmer(f3_reduced, data = df5, family = binomial,
+            control = glmerControl(optimizer = "bobyqa",
+                                   optCtrl  = list(maxfun = 100000)))
+    }, error = function(e) {
+      stop(sprintf("Reduced M3 also failed: %s", conditionMessage(e)))
+    })
+    m3_optimizer_path <- "bobyqa on reduced (1|thread_id) — author dropped"
+    cat("PATH: reduced model fitted (author RE dropped)\n")
+  }
+}
+
+cat(sprintf("\nM3 optimizer path: %s\n", m3_optimizer_path))
+
 author_var <- NA_real_
-if (!is.null(m3)) {
+if (!m3_author_dropped) {
   vc <- as.data.frame(VarCorr(m3))
   author_row <- vc[vc$grp == "author", ]
   if (nrow(author_row) > 0) {
     author_var <- author_row$vcov[1]
-    cat(sprintf("\nauthor random-effect variance: %.6f\n", author_var))
+    cat(sprintf("author random-effect variance: %.6f\n", author_var))
+    if (!is.na(author_var) && author_var < 0.01) {
+      cat("NOTE: author variance < 0.01 — effect is negligible\n")
+    }
   }
 }
 
-refit_without_author <- (!m3_converged) || (!is.na(author_var) && author_var < 0.01)
-
-if (refit_without_author) {
-  if (!m3_converged)
-    cat("Refitting without (1|author): convergence issue in full model\n")
-  if (!is.na(author_var) && author_var < 0.01)
-    cat(sprintf("Refitting without (1|author): variance = %.6f < 0.01\n", author_var))
-
-  m3_author_dropped <- TRUE
-  f3_reduced <- as.formula(paste(
-    "y ~",
-    paste(c("A_social", "A_hypothetical", CONTROLS), collapse = " + "),
-    "+ (1|thread_id)"
-  ))
-  cat("\nFormula (reduced):\n"); print(f3_reduced); cat("\n")
-  m3 <- glmer(f3_reduced, data = df5, family = binomial,
-              control = glmerControl(optimizer = "bobyqa"))
-}
-
-saveRDS(list(model = m3, author_dropped = m3_author_dropped, author_var = author_var),
+saveRDS(list(model          = m3,
+             author_dropped  = m3_author_dropped,
+             author_var      = author_var,
+             optimizer_path  = m3_optimizer_path),
         file = "analysis/robustness_1to5_m3.rds")
 cat("Saved: analysis/robustness_1to5_m3.rds\n")
 
