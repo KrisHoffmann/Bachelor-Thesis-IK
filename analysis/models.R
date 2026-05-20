@@ -27,18 +27,18 @@ library(dplyr)
 #          "log1p_flesch_kincaid".
 # =============================================================================
 CONTROLS <- c(
-  "noun_to_verb_ratio",       # imputed (corpus mean for zero-verb comments)
-  "type_token_ratio",
-  "flesch_kincaid",
-  "hedge_density",
-  "mean_sentence_length",
-  "mean_word_length",
-  "punctuation_density",
-  "paragraph_count",
-  "num_sentences",
-  "num_tokens",
-  "num_word_tokens",
-  "num_urls"
+  "log1p_noun_to_verb_ratio",
+  "log1p_type_token_ratio",
+  "log1p_flesch_kincaid",
+  "log1p_hedge_density",
+  "log1p_mean_sentence_length",
+  "log1p_mean_word_length",
+  "log1p_punctuation_density",
+  "log1p_paragraph_count",
+  "log1p_num_sentences",
+  "log1p_num_tokens",
+  "log1p_num_word_tokens",
+  "log1p_num_urls"
 )
 
 # ── Load prepped data ─────────────────────────────────────────────────────────

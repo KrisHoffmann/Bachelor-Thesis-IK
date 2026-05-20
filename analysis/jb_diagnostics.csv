@@ -1,0 +1,13 @@
+"variable","JB_stat","p_value","reject_H0"
+"noun_to_verb_ratio",2930513.148,0,TRUE
+"type_token_ratio",330.216,0,TRUE
+"flesch_kincaid",1920934.91,0,TRUE
+"hedge_density",17019.418,0,TRUE
+"mean_sentence_length",6592654.657,0,TRUE
+"mean_word_length",2015.051,0,TRUE
+"punctuation_density",33743.98,0,TRUE
+"paragraph_count",1169753.187,0,TRUE
+"num_sentences",538994.559,0,TRUE
+"num_tokens",379515.599,0,TRUE
+"num_word_tokens",368273.653,0,TRUE
+"num_urls",34434909.487,0,TRUE

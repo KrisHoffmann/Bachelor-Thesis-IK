@@ -12,6 +12,7 @@ hf_cache/
 .cache/
 *.egg-info/
 Context/
+analysis/*.rds
 
 # Large CMV dataset files — never commit
 3778298/
@@ -34,3 +35,5 @@ Handoffs/
 **/logs/*.err
 slurm/logs/
 *:Zone.Identifier
+.Rproj.user
+.positai
