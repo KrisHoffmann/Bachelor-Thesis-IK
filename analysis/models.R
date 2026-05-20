@@ -201,13 +201,13 @@ target_vars <- c("A_social", "A_hypothetical")
 
 # M1 robust estimates
 m1_rob_tbl <- as.data.frame(m1_robust)
+colnames(m1_rob_tbl) <- c("est_m1", "se_m1_robust", "z_m1", "p_m1")
 m1_rob_tbl$term <- rownames(m1_rob_tbl)
-colnames(m1_rob_tbl) <- c("est_m1", "se_m1_robust", "z_m1", "p_m1", "term")
 
 # M3 estimates
 m3_coefs <- as.data.frame(summary(m3)$coefficients)
+colnames(m3_coefs) <- c("est_m3", "se_m3", "z_m3", "p_m3")
 m3_coefs$term <- rownames(m3_coefs)
-colnames(m3_coefs) <- c("est_m3", "se_m3", "z_m3", "p_m3", "term")
 
 build_row <- function(var) {
   r1 <- m1_rob_tbl[m1_rob_tbl$term == var, ]
