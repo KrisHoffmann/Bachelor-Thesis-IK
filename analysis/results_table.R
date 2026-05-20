@@ -30,9 +30,11 @@ cat(strrep("=", 70), "\n", sep = "")
 target_vars <- c("A_social", "A_hypothetical")
 
 # M1 robust estimates
-# coeftest returns a matrix with 4 columns: Estimate, Std. Error, z value, Pr(>|z|)
-m1_rob_tbl <- as.data.frame(m1_robust)
-colnames(m1_rob_tbl) <- c("est_m1", "se_m1_robust", "z_m1", "p_m1")
+# as.data.frame() on a coeftest object collapses to one column; use matrix() instead
+m1_mat <- matrix(m1_robust, ncol = 4)
+rownames(m1_mat) <- rownames(m1_robust)
+colnames(m1_mat) <- c("est_m1", "se_m1_robust", "z_m1", "p_m1")
+m1_rob_tbl <- as.data.frame(m1_mat)
 m1_rob_tbl$term <- rownames(m1_rob_tbl)
 
 # M3 estimates
