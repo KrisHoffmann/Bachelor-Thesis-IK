@@ -35,9 +35,6 @@ CONTROLS <- c(
   "log1p_mean_word_length",
   "log1p_punctuation_density",
   "log1p_paragraph_count",
-  "log1p_num_sentences",
-  "log1p_num_tokens",
-  "log1p_num_word_tokens",
   "log1p_num_urls"
 )
 

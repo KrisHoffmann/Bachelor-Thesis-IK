@@ -1,0 +1,15 @@
+"variable","VIF"
+"log1p_num_word_tokens",1564.86
+"log1p_num_tokens",1527.617
+"log1p_num_sentences",62.411
+"log1p_mean_sentence_length",12.332
+"log1p_type_token_ratio",6.094
+"log1p_flesch_kincaid",5.534
+"log1p_punctuation_density",3.289
+"log1p_mean_word_length",2.94
+"log1p_paragraph_count",2.786
+"A_social",1.326
+"A_hypothetical",1.269
+"log1p_noun_to_verb_ratio",1.188
+"log1p_num_urls",1.11
+"log1p_hedge_density",1.091
