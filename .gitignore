@@ -33,3 +33,4 @@ Handoffs/
 **/logs/*.out
 **/logs/*.err
 slurm/logs/
+*:Zone.Identifier
