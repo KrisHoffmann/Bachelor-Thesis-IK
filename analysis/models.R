@@ -118,6 +118,12 @@ cat("\n", strrep("=", 70), "\n", sep = "")
 cat("MODEL 3 — GLMM Robustness Check (binomial mixed model)\n")
 cat(strrep("=", 70), "\n", sep = "")
 
+n_unique_authors <- length(unique(df3$author))
+cat(sprintf("\nUnique authors in df3: %d\n", n_unique_authors))
+if (n_unique_authors > 5000) {
+  # Author random effect has many levels (>5,000); convergence may be slow.
+}
+
 f3_full <- as.formula(paste(
   "y ~",
   paste(c("A_social", "A_hypothetical", CONTROLS), collapse = " + "),
