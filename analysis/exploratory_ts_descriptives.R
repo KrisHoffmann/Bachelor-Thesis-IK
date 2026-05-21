@@ -17,7 +17,7 @@ library(arrow)
 library(dplyr)
 
 # ── Path ──────────────────────────────────────────────────────────────────────
-PARQUET <- "final_dataset_creation/dataset_construction/outputs/stage8_comment_full.parquet"
+PARQUET <- "C:/Users/kris/Documents/Thesis_rcode/Bachelor-Thesis-IK/analysis/outputs/stage8_comment_full.parquet"
 
 # Delta/award indicator: column "y" (1 = delta awarded, 0 = not awarded)
 DELTA_COL  <- "y"
