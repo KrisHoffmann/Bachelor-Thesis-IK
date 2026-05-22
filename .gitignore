@@ -19,6 +19,8 @@ analysis/*.rds
 *.bz2
 *.zip
 
+Writing/
+
 # Outputs from topic-filter runs
 final_dataset_creation/outputs/
 !final_dataset_creation/outputs/topic_filter/.gitkeep
