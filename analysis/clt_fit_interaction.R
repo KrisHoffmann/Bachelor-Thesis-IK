@@ -124,8 +124,14 @@ df4$mismatch_soc <- abs(df4$A_social    - df4$A_Soc_OP)
 df4$mismatch_hyp <- abs(df4$A_hypothetical - df4$A_H_OP)
 
 # =============================================================================
-# Helper: format a coeftest + vcov into thesis-ready tables
+# Helpers
 # =============================================================================
+fmt_p <- function(p) {
+  if (is.na(p))       "NA"
+  else if (p < 0.001) "< .001"
+  else                sprintf("%.3f", p)
+}
+
 format_model_table <- function(model, vcov_cl, model_label) {
   ct  <- lmtest::coeftest(model, vcov = vcov_cl)
   est <- ct[, 1]
@@ -135,12 +141,6 @@ format_model_table <- function(model, vcov_cl, model_label) {
   or     <- exp(est)
   ci_lo  <- exp(est - 1.96 * se)
   ci_hi  <- exp(est + 1.96 * se)
-
-  fmt_p <- function(p) {
-    if      (p < 0.001) "< .001"
-    else if (p < 0.01)  sprintf("%.3f", p)
-    else                sprintf("%.3f", p)
-  }
 
   header <- sprintf(
     "\n%-34s %8s %8s %8s   %8s %16s\n%s",
@@ -194,21 +194,23 @@ cat("\n\nINTERPRETATION (F1):\n")
 ctF1 <- lmtest::coeftest(mF1, vcov = vcov_F1)
 b_soc_op <- ctF1["A_Soc_OP", 1]; p_soc_op <- ctF1["A_Soc_OP", 4]
 b_hyp_op <- ctF1["A_H_OP",   1]; p_hyp_op <- ctF1["A_H_OP",   4]
+sig_soc_op <- !is.na(p_soc_op) && p_soc_op < .05
+sig_hyp_op <- !is.na(p_hyp_op) && p_hyp_op < .05
 cat(sprintf(
   "  A_Soc_OP: log-OR = %+.4f, %s\n    -> OP social abstraction %s associated with delta (%s).\n",
   b_soc_op,
-  ifelse(p_soc_op < .05, sprintf("p = %.3f *", p_soc_op), sprintf("p = %.3f (n.s.)", p_soc_op)),
-  ifelse(b_soc_op > 0, "positively", "negatively"),
-  ifelse(p_soc_op < .05, "significant", "not significant")
+  ifelse(sig_soc_op, sprintf("p = %.3f *", p_soc_op), sprintf("p = %s (n.s.)", fmt_p(p_soc_op))),
+  ifelse(!is.na(b_soc_op) && b_soc_op > 0, "positively", "negatively"),
+  ifelse(sig_soc_op, "significant", "not significant")
 ))
 cat(sprintf(
   "  A_H_OP  : log-OR = %+.4f, %s\n    -> OP hypothetical abstraction %s associated with delta (%s).\n",
   b_hyp_op,
-  ifelse(p_hyp_op < .05, sprintf("p = %.3f *", p_hyp_op), sprintf("p = %.3f (n.s.)", p_hyp_op)),
-  ifelse(b_hyp_op > 0, "positively", "negatively"),
-  ifelse(p_hyp_op < .05, "significant", "not significant")
+  ifelse(sig_hyp_op, sprintf("p = %.3f *", p_hyp_op), sprintf("p = %s (n.s.)", fmt_p(p_hyp_op))),
+  ifelse(!is.na(b_hyp_op) && b_hyp_op > 0, "positively", "negatively"),
+  ifelse(sig_hyp_op, "significant", "not significant")
 ))
-if (p_soc_op >= .05 && p_hyp_op >= .05) {
+if (!sig_soc_op && !sig_hyp_op) {
   cat("  Neither OP index is significant: OP construal level does not independently\n")
   cat("  predict persuasion. This is consistent with a pure comment-level effect\n")
   cat("  rather than OP susceptibility driving delta awards.\n")
@@ -246,13 +248,14 @@ int_hyp_nm <- grep("A_hypothetical.*A_H_OP|A_H_OP.*A_hypothetical", rownames(ctF
 for (nm in c(int_soc_nm, int_hyp_nm)) {
   if (!is.na(nm) && nm %in% rownames(ctF2)) {
     b <- ctF2[nm, 1]; p <- ctF2[nm, 4]
+    sig <- !is.na(p) && p < .05
     dim_label <- if (grepl("Soc", nm)) "Social" else "Hypothetical"
     cat(sprintf(
       "  %s interaction (%s): log-OR = %+.4f, %s\n    -> %s\n",
       dim_label, nm, b,
-      ifelse(p < .05, sprintf("p = %.3f *", p), sprintf("p = %.3f (n.s.)", p)),
-      ifelse(p < .05,
-        ifelse(b > 0,
+      ifelse(sig, sprintf("p = %.3f *", p), sprintf("p = %s (n.s.)", fmt_p(p))),
+      ifelse(sig,
+        ifelse(!is.na(b) && b > 0,
           "SUPPORTS fit account: matched construal boosts persuasion.",
           "CONTRADICTS fit account: matched construal reduces persuasion."),
         "No evidence for construal match effect on this dimension.")
@@ -283,13 +286,14 @@ ctF3 <- lmtest::coeftest(mF3, vcov = vcov_F3)
 for (nm in c("mismatch_soc", "mismatch_hyp")) {
   if (nm %in% rownames(ctF3)) {
     b <- ctF3[nm, 1]; p <- ctF3[nm, 4]
+    sig <- !is.na(p) && p < .05
     dim_label <- if (nm == "mismatch_soc") "Social" else "Hypothetical"
     cat(sprintf(
       "  %s mismatch (%s): log-OR = %+.4f, %s\n    -> %s\n",
       dim_label, nm, b,
-      ifelse(p < .05, sprintf("p = %.3f *", p), sprintf("p = %.3f (n.s.)", p)),
-      ifelse(p < .05,
-        ifelse(b < 0,
+      ifelse(sig, sprintf("p = %.3f *", p), sprintf("p = %s (n.s.)", fmt_p(p))),
+      ifelse(sig,
+        ifelse(!is.na(b) && b < 0,
           "SUPPORTS fit account: smaller construal distance -> higher delta odds.",
           "CONTRADICTS fit account: smaller distance associated with lower delta odds."),
         "No evidence for construal distance effect on this dimension.")
