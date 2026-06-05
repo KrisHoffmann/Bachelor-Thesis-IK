@@ -39,3 +39,4 @@ slurm/logs/
 *:Zone.Identifier
 .Rproj.user
 .positai
+texput.log
