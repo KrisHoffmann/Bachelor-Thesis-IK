@@ -30,7 +30,7 @@ CONTROLS <- c(
 )
 
 # ── Paths ─────────────────────────────────────────────────────────────────────
-MATCHED_PATH    <- "outputs/stage9_matched_1to5.parquet"
+MATCHED_PATH    <- "analysis/outputs/stage9_matched_1to5.parquet"
 OP_INDICES_PATH <- "final_dataset_creation/outputs/op_selftexts/op_abstraction_indices.parquet"
 OUTPUT_FILE     <- "analysis/output/fit_interaction_results_1to5.txt"
 OUTPUT_RDS      <- "analysis/fit_interaction_models_1to5.rds"
