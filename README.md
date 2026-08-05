@@ -9,6 +9,7 @@ Conditional Logistic Analysis in Economics
 Threads on ChangeMyView
 
 Grade 8.6 
+
 Available at : https://arts.studenttheses.ub.rug.nl/id/eprint/39163.
 
 First Supervisor : Khalid Al-Khatib
