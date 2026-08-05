@@ -1,5 +1,7 @@
 Kris Hoffmann
+
 S4546407
+
 Title : Construal Level Theory and Persuasion on
 ChangeMyView
 A Sentence-Level Classifier Cascade and
@@ -10,6 +12,7 @@ Grade 8.6
 Available at : https://arts.studenttheses.ub.rug.nl/id/eprint/39163.
 
 First Supervisor : Khalid Al-Khatib
+
 Second Reader: Andreas van Cranenburgh
 
 # CLT Cascade Classifier — Bachelor Thesis
